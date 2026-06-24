@@ -1,3 +1,6 @@
+import os
+import sys
+sys.path.insert(0, os.path.dirname(__file__))
 from urllib.parse import urlparse, parse_qs
 from http.server import BaseHTTPRequestHandler
 from shared import heyreach_post, json_handler, error_handler, write_response
