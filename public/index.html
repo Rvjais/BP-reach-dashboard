@@ -459,14 +459,17 @@ pageLoaders.inbox = async () => {
   let html = '';
   if (d.items && d.items.length) {
     for (const c of d.items) {
-      const p = c.lastMessage || c.previewMessage || '';
+      const p = c.lastMessageText || '';
+      const prof = c.correspondentProfile || {};
+      const name = [prof.firstName, prof.lastName].filter(Boolean).join(' ') || 'Unknown';
+      const unread = !c.read;
       html += `<div class="inbox-item">
         <div style="display:flex;justify-content:space-between;align-items:center">
-          <strong>${c.participantName || c.leadName || 'Unknown'}</strong>
-          ${c.seen !== undefined ? (c.seen ? '<span style="color:var(--text2);font-size:12px">Read</span>' : '<span style="color:var(--accent);font-size:12px;font-weight:600">Unread</span>') : ''}
+          <strong>${name}</strong>
+          ${unread ? '<span style="color:var(--accent);font-size:12px;font-weight:600">Unread</span>' : '<span style="color:var(--text2);font-size:12px">Read</span>'}
         </div>
         <div class="inbox-meta">
-          ${c.campaignName ? `<span>Campaign: ${c.campaignName}</span>` : ''}
+          <span>${prof.headline || ''}</span>
           ${c.lastMessageAt ? `<span>${new Date(c.lastMessageAt).toLocaleString()}</span>` : ''}
         </div>
         <div class="inbox-preview">${p.substring(0, 200)}${p.length > 200 ? '...' : ''}</div>
@@ -498,7 +501,7 @@ pageLoaders.accounts = async () => {
 };
 
 pageLoaders.stats = async () => {
-  const d = await api('/api/stats/by-campaign');
+  const d = await api('/api/stats');
   if (d.error) { bodyEl('stats').innerHTML = `<div class="error-banner">${d.error}</div>`; return; }
   if (!d.items || !d.items.length) { bodyEl('stats').innerHTML = '<div class="empty">No stats available</div>'; return; }
   let html = '<table><thead><tr><th>Campaign</th><th>Connections Sent</th><th>Accepted</th><th>Accept Rate</th><th>Messages Sent</th><th>Replies</th><th>Reply Rate</th><th>Interested</th><th>Profile Views</th></tr></thead><tbody>';
