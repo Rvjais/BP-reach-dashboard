@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HeyReach Dashboard</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #242838;
+    --border: #2d3145;
+    --text: #e1e4ed;
+    --text2: #8b90a5;
+    --accent: #6c8aff;
+    --accent2: #4f6fdf;
+    --green: #4ade80;
+    --yellow: #facc15;
+    --red: #f87171;
+    --orange: #fb923c;
+    --blue: #60a5fa;
+    --purple: #a78bfa;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    min-height: 100vh;
+  }
+  .sidebar {
+    width: 220px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 20px 0;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .logo {
+    padding: 0 20px 24px;
+    font-size: 18px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--accent);
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 8px;
+  }
+  .logo svg { width: 24px; height: 24px; }
+  .nav-item {
+    padding: 10px 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text2);
+    font-size: 14px;
+    transition: all 0.15s;
+    border-left: 3px solid transparent;
+  }
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active {
+    background: var(--surface2);
+    color: var(--accent);
+    border-left-color: var(--accent);
+  }
+  .nav-item svg { width: 18px; height: 18px; opacity: 0.7; }
+  .nav-item.active svg { opacity: 1; }
+  .main {
+    flex: 1;
+    padding: 28px 32px;
+    overflow-y: auto;
+    max-height: 100vh;
+  }
+  .page { display: none; }
+  .page.active { display: block; }
+  h1 {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 24px;
+  }
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+  }
+  .card-label {
+    font-size: 12px;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+  .card-value {
+    font-size: 28px;
+    font-weight: 700;
+  }
+  .card-value.green { color: var(--green); }
+  .card-value.blue { color: var(--blue); }
+  .card-value.purple { color: var(--purple); }
+  .card-value.orange { color: var(--orange); }
+  .card-value.yellow { color: var(--yellow); }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  th {
+    text-align: left;
+    padding: 12px 16px;
+    font-size: 12px;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 10px 16px;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border);
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface2); }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .badge-draft { background: #374151; color: var(--text2); }
+  .badge-in_progress { background: #1e3a5f; color: var(--blue); }
+  .badge-finished { background: #14532d; color: var(--green); }
+  .badge-paused { background: #422006; color: var(--yellow); }
+  .badge-canceled { background: #3b1111; color: var(--red); }
+  .badge-failed { background: #3b1111; color: var(--red); }
+  .badge-starting { background: #1e3a5f; color: var(--blue); }
+  .badge-scheduled { background: #1e3a5f; color: var(--blue); }
+  .progress-bar {
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+    min-width: 80px;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: var(--accent);
+    transition: width 0.5s;
+  }
+  .progress-fill.green { background: var(--green); }
+  .progress-fill.yellow { background: var(--yellow); }
+  .progress-fill.red { background: var(--red); }
+  .section-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 14px;
+    margin-top: 28px;
+  }
+  .status-breakdown {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+  .status-chip {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+  .error-banner {
+    background: #3b1111;
+    border: 1px solid #7f1d1d;
+    border-radius: 8px;
+    padding: 12px 16px;
+    color: var(--red);
+    font-size: 13px;
+    margin-bottom: 16px;
+  }
+  .loading {
+    text-align: center;
+    padding: 40px;
+    color: var(--text2);
+  }
+  .spinner {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .inbox-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin-bottom: 10px;
+  }
+  .inbox-item:hover { border-color: var(--accent); }
+  .inbox-meta {
+    display: flex;
+    gap: 16px;
+    font-size: 12px;
+    color: var(--text2);
+    margin-top: 4px;
+  }
+  .inbox-preview {
+    color: var(--text2);
+    font-size: 13px;
+    margin-top: 6px;
+    line-height: 1.4;
+  }
+  .stat-row {
+    display: flex;
+    gap: 8px;
+    font-size: 12px;
+    margin-top: 4px;
+    color: var(--text2);
+  }
+  .stat-row span { min-width: 60px; }
+  .empty {
+    text-align: center;
+    padding: 30px;
+    color: var(--text2);
+    font-size: 14px;
+  }
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--border); }
+  @media (max-width: 768px) {
+    .sidebar { width: 60px; }
+    .sidebar .logo span, .sidebar .nav-item span { display: none; }
+    .main { padding: 16px; }
+    .cards { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<nav class="sidebar">
+  <div class="logo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <span>HeyReach</span>
+  </div>
+  <div class="nav-item active" data-page="dashboard" onclick="showPage('dashboard')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+    <span>Dashboard</span>
+  </div>
+  <div class="nav-item" data-page="campaigns" onclick="showPage('campaigns')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+    <span>Campaigns</span>
+  </div>
+  <div class="nav-item" data-page="lists" onclick="showPage('lists')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+    <span>Lead Lists</span>
+  </div>
+  <div class="nav-item" data-page="inbox" onclick="showPage('inbox')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+    <span>Inbox</span>
+  </div>
+  <div class="nav-item" data-page="accounts" onclick="showPage('accounts')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+    <span>Accounts</span>
+  </div>
+  <div class="nav-item" data-page="stats" onclick="showPage('stats')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+    <span>Stats</span>
+  </div>
+</nav>
+
+<div class="main">
+
+  <div id="page-dashboard" class="page active">
+    <h1>Dashboard</h1>
+    <div class="page-body">
+      <div class="cards" id="overview-cards"></div>
+      <div class="section-title">Campaign Status</div>
+      <div id="status-breakdown"></div>
+      <div class="section-title">Recent Campaigns</div>
+      <div id="recent-campaigns"></div>
+    </div>
+  </div>
+
+  <div id="page-campaigns" class="page">
+    <h1>Campaigns</h1>
+    <div class="page-body"><div id="campaigns-table"></div></div>
+  </div>
+
+  <div id="page-lists" class="page">
+    <h1>Lead Lists</h1>
+    <div class="page-body"><div id="lists-table"></div></div>
+  </div>
+
+  <div id="page-inbox" class="page">
+    <h1>Inbox</h1>
+    <div class="page-body"><div id="inbox-list"></div></div>
+  </div>
+
+  <div id="page-accounts" class="page">
+    <h1>LinkedIn Accounts</h1>
+    <div class="page-body"><div id="accounts-table"></div></div>
+  </div>
+
+  <div id="page-stats" class="page">
+    <h1>Statistics</h1>
+    <div class="page-body"><div id="stats-content"></div></div>
+  </div>
+
+</div>
+
+<script>
+const BASE = '';
+
+function $(id) { return document.getElementById(id); }
+
+async function api(path) {
+  const r = await fetch(BASE + path);
+  return r.json();
+}
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  $('page-' + name).classList.add('active');
+  document.querySelector(`[data-page="${name}"]`).classList.add('active');
+  loadPage(name);
+}
+
+function badge(status) {
+  const s = (status || '').toLowerCase().replace(/\s+/g, '_');
+  return `<span class="badge badge-${s}">${status || 'UNKNOWN'}</span>`;
+}
+
+function progressBar(done, total) {
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  let cls = 'progress-fill';
+  if (pct >= 90) cls += ' green';
+  else if (pct >= 50) cls += ' yellow';
+  else if (pct > 0) cls += '';
+  else cls += ' green';
+  return `<div class="progress-bar"><div class="${cls}" style="width:${pct}%"></div></div> <span style="font-size:12px">${done}/${total}</span>`;
+}
+
+function bodyEl(name) { return $('page-' + name).querySelector('.page-body'); }
+
+const pageLoaders = {};
+
+pageLoaders.dashboard = async () => {
+  const [ov, camps] = await Promise.all([
+    api('/api/overview'),
+    api('/api/campaigns?limit=5')
+  ]);
+  const d = ov;
+  const colorMap = {DRAFT:'#6b7280', IN_PROGRESS:'#3b82f6', FINISHED:'#22c55e', PAUSED:'#eab308', CANCELED:'#ef4444', FAILED:'#ef4444', STARTING:'#3b82f6', SCHEDULED:'#3b82f6'};
+  let chips = '';
+  for (const [status, count] of Object.entries(d.statusBreakdown)) {
+    chips += `<span class="status-chip" style="background:${colorMap[status]||'#374151'}22;color:${colorMap[status]||'#9ca3af'}">${status} (${count})</span>`;
+  }
+  let recentHtml = '';
+  if (camps.error) {
+    recentHtml = `<div class="error-banner">${camps.error}</div>`;
+  } else if (camps.items && camps.items.length) {
+    for (const c of camps.items) {
+      const s = c.progressStats || {};
+      const total = s.totalUsers || 0;
+      const done = s.totalUsersFinished || 0;
+      recentHtml += `<div class="inbox-item">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <strong>${c.name}</strong> ${badge(c.status)}
+        </div>
+        <div class="stat-row"><span>List:</span> ${c.linkedInUserListName || '—'}</div>
+        <div class="stat-row"><span>Progress:</span> ${progressBar(done, total)}</div>
+        <div class="stat-row"><span>Created:</span> ${new Date(c.creationTime).toLocaleDateString()}</div>
+      </div>`;
+    }
+  } else {
+    recentHtml = '<div class="empty">No campaigns</div>';
+  }
+  bodyEl('dashboard').innerHTML = `
+    <div class="cards">
+      <div class="card"><div class="card-label">Campaigns</div><div class="card-value blue">${d.totalCampaigns}</div></div>
+      <div class="card"><div class="card-label">Active</div><div class="card-value green">${d.activeCampaigns}</div></div>
+      <div class="card"><div class="card-label">Lead Lists</div><div class="card-value purple">${d.totalLists}</div></div>
+      <div class="card"><div class="card-label">Total Leads</div><div class="card-value orange">${d.totalLeads.toLocaleString()}</div></div>
+      <div class="card"><div class="card-label">LinkedIn Accounts</div><div class="card-value yellow">${d.totalAccounts}</div></div>
+      <div class="card"><div class="card-label">Inbox</div><div class="card-value blue">${typeof d.totalInbox === 'number' ? d.totalInbox : '—'}</div></div>
+    </div>
+    <div class="section-title">Campaign Status</div>
+    <div class="status-breakdown">${chips || '<div class="empty">No campaigns</div>'}</div>
+    <div class="section-title">Recent Campaigns</div>
+    ${recentHtml}
+  `;
+};
+
+pageLoaders.campaigns = async () => {
+  const d = await api('/api/campaigns?limit=100');
+  if (d.error) { bodyEl('campaigns').innerHTML = `<div class="error-banner">${d.error}</div>`; return; }
+  if (!d.items || !d.items.length) { bodyEl('campaigns').innerHTML = '<div class="empty">No campaigns</div>'; return; }
+  let html = '<table><thead><tr><th>ID</th><th>Name</th><th>List</th><th>Status</th><th>Progress</th><th>Created</th></tr></thead><tbody>';
+  for (const c of d.items) {
+    const s = c.progressStats || {};
+    const total = s.totalUsers || 0;
+    const done = s.totalUsersFinished || 0;
+    html += `<tr>
+      <td>${c.id}</td>
+      <td><strong>${c.name}</strong></td>
+      <td>${c.linkedInUserListName || '—'}</td>
+      <td>${badge(c.status)}</td>
+      <td>${progressBar(done, total)}</td>
+      <td>${new Date(c.creationTime).toLocaleDateString()}</td>
+    </tr>`;
+  }
+  html += '</tbody></table>';
+  bodyEl('campaigns').innerHTML = html;
+};
+
+pageLoaders.lists = async () => {
+  const d = await api('/api/lists?limit=100');
+  if (d.error) { bodyEl('lists').innerHTML = `<div class="error-banner">${d.error}</div>`; return; }
+  if (!d.items || !d.items.length) { bodyEl('lists').innerHTML = '<div class="empty">No lead lists</div>'; return; }
+  let html = '<table><thead><tr><th>ID</th><th>Name</th><th>Type</th><th>Leads</th><th>Created</th></tr></thead><tbody>';
+  for (const l of d.items) {
+    html += `<tr>
+      <td>${l.id}</td>
+      <td><strong>${l.name}</strong></td>
+      <td>${l.listType || '—'}</td>
+      <td>${(l.totalItemsCount || 0).toLocaleString()}</td>
+      <td>${new Date(l.creationTime).toLocaleDateString()}</td>
+    </tr>`;
+  }
+  html += '</tbody></table>';
+  bodyEl('lists').innerHTML = html;
+};
+
+pageLoaders.inbox = async () => {
+  const d = await api('/api/inbox?offset=0&limit=20');
+  if (d.error) { bodyEl('inbox').innerHTML = `<div class="error-banner">${d.error}</div>`; return; }
+  let html = '';
+  if (d.items && d.items.length) {
+    for (const c of d.items) {
+      const p = c.lastMessage || c.previewMessage || '';
+      html += `<div class="inbox-item">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <strong>${c.participantName || c.leadName || 'Unknown'}</strong>
+          ${c.seen !== undefined ? (c.seen ? '<span style="color:var(--text2);font-size:12px">Read</span>' : '<span style="color:var(--accent);font-size:12px;font-weight:600">Unread</span>') : ''}
+        </div>
+        <div class="inbox-meta">
+          ${c.campaignName ? `<span>Campaign: ${c.campaignName}</span>` : ''}
+          ${c.lastMessageAt ? `<span>${new Date(c.lastMessageAt).toLocaleString()}</span>` : ''}
+        </div>
+        <div class="inbox-preview">${p.substring(0, 200)}${p.length > 200 ? '...' : ''}</div>
+      </div>`;
+    }
+  } else {
+    html = '<div class="empty">No conversations</div>';
+  }
+  bodyEl('inbox').innerHTML = html;
+};
+
+pageLoaders.accounts = async () => {
+  const d = await api('/api/accounts');
+  if (d.error) { bodyEl('accounts').innerHTML = `<div class="error-banner">${d.error}</div>`; return; }
+  if (!d.items || !d.items.length) { bodyEl('accounts').innerHTML = '<div class="empty">No LinkedIn accounts</div>'; return; }
+  let html = '<table><thead><tr><th>ID</th><th>Name</th><th>Email</th><th>LinkedIn</th><th>Active</th><th>Campaigns</th></tr></thead><tbody>';
+  for (const a of d.items) {
+    html += `<tr>
+      <td>${a.id}</td>
+      <td><strong>${a.firstName || ''} ${a.lastName || ''}</strong></td>
+      <td>${a.emailAddress || '—'}</td>
+      <td><a href="${a.profileUrl}" target="_blank" style="color:var(--accent);text-decoration:none;font-size:12px">Profile</a></td>
+      <td>${a.isActive ? '<span style="color:var(--green)">Yes</span>' : '<span style="color:var(--text2)">No</span>'}</td>
+      <td>${a.activeCampaigns || 0}</td>
+    </tr>`;
+  }
+  html += '</tbody></table>';
+  bodyEl('accounts').innerHTML = html;
+};
+
+pageLoaders.stats = async () => {
+  const d = await api('/api/stats/by-campaign');
+  if (d.error) { bodyEl('stats').innerHTML = `<div class="error-banner">${d.error}</div>`; return; }
+  if (!d.items || !d.items.length) { bodyEl('stats').innerHTML = '<div class="empty">No stats available</div>'; return; }
+  let html = '<table><thead><tr><th>Campaign</th><th>Connections Sent</th><th>Accepted</th><th>Accept Rate</th><th>Messages Sent</th><th>Replies</th><th>Reply Rate</th><th>Interested</th><th>Profile Views</th></tr></thead><tbody>';
+  for (const s of d.items) {
+    html += `<tr>
+      <td><strong>${s.campaignName || 'ID: ' + s.campaignId}</strong></td>
+      <td>${s.connectionsSent || 0}</td>
+      <td>${s.connectionsAccepted || 0}</td>
+      <td>${((s.connectionAcceptanceRate || 0) * 100).toFixed(1)}%</td>
+      <td>${s.messagesSent || 0}</td>
+      <td>${s.totalMessageReplies || 0}</td>
+      <td>${((s.messageReplyRate || 0) * 100).toFixed(1)}%</td>
+      <td>${s.autoTaggedInterested || 0}</td>
+      <td>${s.profileViews || 0}</td>
+    </tr>`;
+  }
+  html += '</tbody></table>';
+  bodyEl('stats').innerHTML = html;
+};
+
+function loadPage(name) {
+  const el = bodyEl(name);
+  if (!el) return;
+  el.innerHTML = '<div class="loading"><div class="spinner"></div></div>';
+  setTimeout(() => pageLoaders[name]().catch(e => {
+    el.innerHTML = `<div class="error-banner">Failed to load: ${e.message}</div>`;
+  }), 50);
+}
+
+loadPage('dashboard');
+</script>
+</body>
+</html>
