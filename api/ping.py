@@ -1,6 +1,6 @@
 import os
 from http.server import BaseHTTPRequestHandler
-from lib.util import json_handler, write_response
+from shared import json_handler, write_response
 
 
 class handler(BaseHTTPRequestHandler):

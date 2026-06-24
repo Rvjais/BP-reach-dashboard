@@ -1,8 +1,6 @@
-import json
 from urllib.parse import urlparse, parse_qs
 from http.server import BaseHTTPRequestHandler
-from lib.client import heyreach_post
-from lib.util import json_handler, error_handler, write_response
+from shared import heyreach_post, json_handler, error_handler, write_response
 
 
 class handler(BaseHTTPRequestHandler):
