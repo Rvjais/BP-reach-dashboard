@@ -1,7 +1,10 @@
 {
   "functions": {
-    "api/**/*.py": {
+    "api/proxy.py": {
       "maxDuration": 30
     }
-  }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/proxy" }
+  ]
 }
