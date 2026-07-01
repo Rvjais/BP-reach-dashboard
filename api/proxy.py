@@ -250,10 +250,17 @@ class handler(BaseHTTPRequestHandler):
 
         # Network
         if path == "/api/network/get":
-            return heyreach_api("/api/public/network/GetConnections", body)
+            return heyreach_api("/api/public/MyNetwork/GetMyNetworkForSender", {
+                "pageNumber": body.get("offset", 0) // 100,
+                "pageSize": body.get("limit", 100),
+                "senderId": body.get("linkedInAccountId", 0)
+            })
 
         if path == "/api/network/isConnection":
-            return heyreach_api("/api/public/network/IsConnection", body)
+            return heyreach_api("/api/public/MyNetwork/IsConnection", {
+                "senderAccountId": body.get("linkedInAccountId", 0),
+                "leadProfileUrl": body.get("profileUrl", body.get("leadProfileUrl", ""))
+            })
 
         # Overview
         if path == "/api/overview":
