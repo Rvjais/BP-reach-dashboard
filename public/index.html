@@ -1179,103 +1179,96 @@ window.loadCampaignLeads = async () => {
   } catch(e) { div.innerHTML = `<div class="error-banner">${e.message}</div>`; }
 };
 
-function renderNodeCard(node) {
+const NODE_COLORS = {
+  CONNECTION_REQUEST:'#3b82f6', VIEW_PROFILE:'#8b5cf6',
+  MESSAGE:'#22c55e', LIKE_POST:'#f59e0b', END:'#6b7280'
+};
+const NODE_ICONS = {
+  CONNECTION_REQUEST: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>',
+  VIEW_PROFILE: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>',
+  MESSAGE: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>',
+  LIKE_POST: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14zM7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg>',
+  END: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>'
+};
+
+function n8nCard(node) {
   if (!node || !node.nodeType) return '';
-  const delay = node.actionDelay ? `${node.actionDelay} ${(node.actionDelayUnit||'').toLowerCase()}` : 'immediately';
-  const icons = {
-    CONNECTION_REQUEST: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>',
-    VIEW_PROFILE: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>',
-    MESSAGE: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>',
-    LIKE_POST: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><path d="M14 9V5a3 3 0 00-3-3l-4 9v11h11.28a2 2 0 002-1.7l1.38-9a2 2 0 00-2-2.3H14zM7 22H4a2 2 0 01-2-2v-7a2 2 0 012-2h3"/></svg>',
-    END: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>'
-  };
-  const colors = {CONNECTION_REQUEST:'#3b82f6',VIEW_PROFILE:'#8b5cf6',MESSAGE:'#22c55e',LIKE_POST:'#f59e0b',END:'#6b7280'};
-  const c = colors[node.nodeType] || '#6b7280';
+  const c = NODE_COLORS[node.nodeType] || '#6b7280';
+  const icon = NODE_ICONS[node.nodeType] || '';
   const label = node.nodeType.replace(/_/g, ' ');
-  const msgs = node.payload ? (node.payload.messages || []).filter(Boolean) : [];
-  const fb = node.payload ? (node.payload.fallbackMessage || '') : '';
-  return {c, label, delay, icon: icons[node.nodeType] || '', msgs, fb};
+  const delay = node.actionDelay ? `${node.actionDelay} ${(node.actionDelayUnit||'').toLowerCase()}` : 'immediately';
+  const msgs = node.payload ? [...(node.payload.messages||[]).filter(Boolean), node.payload.fallbackMessage].filter(Boolean) : [];
+  const isEnd = node.nodeType === 'END';
+  return `
+    <div style="display:flex;flex-direction:column;align-items:center;">
+      <div style="background:var(--surface);border:2px solid ${c}40;border-radius:10px;padding:12px 16px;width:280px;box-shadow:0 2px 6px ${c}10;position:relative;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:36px;height:36px;border-radius:8px;background:${c}18;display:flex;align-items:center;justify-content:center;color:${c};flex-shrink:0;">${icon}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;font-weight:700;color:${c};">${label}</div>
+            <div style="font-size:10px;color:var(--text3);margin-top:1px;">⏱ ${delay}</div>
+          </div>
+          <div style="width:10px;height:10px;border-radius:50%;background:${c};flex-shrink:0;"></div>
+        </div>
+        ${!isEnd && msgs.length ? `<div style="margin-top:8px;font-size:11px;color:var(--text2);background:var(--surface2);border-radius:6px;padding:8px 10px;white-space:pre-wrap;border-left:3px solid ${c};">${msgs[0].substring(0,120)}${msgs[0].length>120?'…':''}</div>` : ''}
+        ${isEnd ? `<div style="font-size:11px;color:#6b7280;text-align:center;padding:4px 0;">Workflow ends here</div>` : ''}
+      </div>`;
 }
 
-function renderSequenceFlow(node) {
+function n8nConnector(color, label) {
+  return `
+    <div style="display:flex;flex-direction:column;align-items:center;width:100%;">
+      <div style="display:flex;flex-direction:column;align-items:center;">
+        <div style="width:2px;height:20px;background:${color};"></div>
+        <div style="border:5px solid transparent;border-top-color:${color};"></div>
+      </div>
+      ${label ? `<div style="font-size:9px;font-weight:700;color:${color};text-transform:uppercase;letter-spacing:.4px;margin:4px 0;background:var(--bg);padding:0 6px;border-radius:3px;">${label}</div>` : ''}
+    </div>`;
+}
+
+function n8nFlow(node) {
   if (!node || !node.nodeType) return '';
-  const card = renderNodeCard(node);
-  let msgHtml = '';
-  if (card.msgs.length) {
-    msgHtml = card.msgs.map(m => `<div style="font-size:12px;color:var(--text2);background:var(--surface2);border-radius:6px;padding:10px 12px;margin-top:8px;white-space:pre-wrap;border-left:3px solid ${card.c};">${m}</div>`).join('');
-  } else if (card.fb) {
-    msgHtml = `<div style="font-size:12px;color:var(--text2);background:var(--surface2);border-radius:6px;padding:10px 12px;margin-top:8px;white-space:pre-wrap;border-left:3px solid ${card.c};">${card.fb}</div>`;
-  }
+  if (node.nodeType === 'END') return n8nCard(node) + '</div>';
 
-  let h = `
-    <div style="display:flex;flex-direction:column;align-items:center;">
-      <div style="background:var(--surface);border:2px solid ${card.c}40;border-radius:12px;padding:16px 20px;width:360px;box-shadow:0 2px 8px ${card.c}15;">
-        <div style="display:flex;align-items:center;gap:10px;">
-          <div style="width:40px;height:40px;border-radius:10px;background:${card.c}15;display:flex;align-items:center;justify-content:center;color:${card.c};">${card.icon}</div>
-          <div style="flex:1;">
-            <div style="font-size:14px;font-weight:700;color:${card.c};">${card.label}</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:2px;">⏱ ${card.delay}</div>
-          </div>
+  let h = n8nCard(node);
+  const cond = node.conditionalNode;
+  const uncond = node.unconditionalNode;
+  const condEnd = cond && cond.nodeType === 'END';
+  const uncondEnd = uncond && uncond.nodeType === 'END';
+
+  if (cond && uncond && !(condEnd && uncondEnd)) {
+    h += n8nConnector('#6b7280', '');
+    h += `<div style="display:flex;gap:6px;width:100%;margin-top:0;">
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;position:relative;">
+        <div style="display:flex;flex-direction:column;align-items:center;">
+          <div style="display:flex;align-items:center;width:100%;"><div style="flex:1;height:2px;background:#22c55e;"></div><div style="border:5px solid transparent;border-left-color:#22c55e;"></div></div>
+          <div style="font-size:9px;font-weight:700;color:#22c55e;text-transform:uppercase;letter-spacing:.4px;margin:3px 0;">If replied</div>
         </div>
-        ${msgHtml}
-      </div>`;
-
-  const hasConditional = node.conditionalNode && node.conditionalNode.nodeType !== 'END';
-  const hasUnconditional = node.unconditionalNode && node.unconditionalNode.nodeType !== 'END';
-
-  if (node.conditionalNode && node.unconditionalNode &&
-      (node.conditionalNode.nodeType !== 'END' || node.unconditionalNode.nodeType !== 'END')) {
-    h += `<div style="display:flex;gap:40px;margin-top:0;position:relative;">
-      <div style="display:flex;flex-direction:column;align-items:center;flex:1;">
-        <div style="width:2px;height:24px;background:#22c55e;"></div>
-        <div style="font-size:10px;font-weight:700;color:#22c55e;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;background:var(--bg);padding:0 8px;">↩ If replied</div>
-        ${node.conditionalNode.nodeType === 'END' ? endNode() : renderSequenceFlow(node.conditionalNode)}
+        ${condEnd ? n8nEnd() : n8nFlow(cond)}
       </div>
-      <div style="display:flex;flex-direction:column;align-items:center;flex:1;">
-        <div style="width:2px;height:24px;background:#ef4444;"></div>
-        <div style="font-size:10px;font-weight:700;color:#ef4444;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;background:var(--bg);padding:0 8px;">↪ No reply</div>
-        ${node.unconditionalNode.nodeType === 'END' ? endNode() : renderSequenceFlow(node.unconditionalNode)}
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;position:relative;">
+        <div style="display:flex;flex-direction:column;align-items:center;">
+          <div style="display:flex;align-items:center;width:100%;"><div style="flex:1;height:2px;background:#ef4444;"></div><div style="border:5px solid transparent;border-left-color:#ef4444;"></div></div>
+          <div style="font-size:9px;font-weight:700;color:#ef4444;text-transform:uppercase;letter-spacing:.4px;margin:3px 0;">No reply</div>
+        </div>
+        ${uncondEnd ? n8nEnd() : n8nFlow(uncond)}
       </div>
     </div>`;
-  } else if (hasConditional) {
-    h += `<div style="display:flex;flex-direction:column;align-items:center;width:100%;">
-      <div style="width:2px;height:24px;background:#22c55e;"></div>
-      <div style="font-size:10px;font-weight:700;color:#22c55e;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">↩ If replied</div>
-      ${renderSequenceFlow(node.conditionalNode)}
-    </div>`;
-  } else if (hasUnconditional) {
-    h += `<div style="display:flex;flex-direction:column;align-items:center;width:100%;">
-      <div style="width:2px;height:24px;background:#6b7280;"></div>
-      <div style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">↓ Continue</div>
-      ${renderSequenceFlow(node.unconditionalNode)}
-    </div>`;
-  } else if (node.conditionalNode && node.conditionalNode.nodeType === 'END') {
-    h += `<div style="display:flex;flex-direction:column;align-items:center;width:100%;">
-      <div style="width:2px;height:24px;background:#22c55e;"></div>
-      <div style="font-size:10px;font-weight:700;color:#22c55e;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">↩ If replied</div>
-      ${endNode()}
-    </div>`;
-    if (node.unconditionalNode && node.unconditionalNode.nodeType !== 'END') {
-      h += `<div style="display:flex;flex-direction:column;align-items:center;width:100%;">
-        <div style="width:2px;height:24px;background:#ef4444;"></div>
-        <div style="font-size:10px;font-weight:700;color:#ef4444;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">↪ No reply</div>
-        ${renderSequenceFlow(node.unconditionalNode)}
-      </div>`;
-    }
-  } else if (node.unconditionalNode) {
-    h += `<div style="display:flex;flex-direction:column;align-items:center;width:100%;">
-      <div style="width:2px;height:24px;background:#6b7280;"></div>
-      ${renderSequenceFlow(node.unconditionalNode)}
-    </div>`;
+  } else if (cond && !condEnd) {
+    h += n8nConnector('#22c55e', 'If replied');
+    h += n8nFlow(cond);
+  } else if (uncond && !uncondEnd) {
+    h += n8nConnector('#6b7280', '');
+    h += n8nFlow(uncond);
   }
 
   h += '</div>';
   return h;
 }
 
-function endNode() {
-  return `<div style="background:var(--surface);border:2px dashed #6b728060;border-radius:12px;padding:12px 20px;width:200px;text-align:center;">
-    <div style="font-size:13px;font-weight:600;color:#6b7280;">🔚 End</div>
+function n8nEnd() {
+  return `<div style="background:var(--surface);border:2px dashed #6b728060;border-radius:10px;padding:10px 16px;width:200px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,0.04);">
+    <div style="font-size:12px;font-weight:600;color:#6b7280;">🔚 End</div>
   </div>`;
 }
 
@@ -1303,9 +1296,9 @@ window.loadCampaignSequence = async () => {
     const res = await fetch('/api/campaigns/sequence?campaignId=' + _currentCampaignId).then(r => r.json());
     if (res.error) { container.innerHTML = `<div class="error-banner">${errorSvg}${res.error}</div>`; return; }
     if (res.nodeType) {
-      container.innerHTML = renderSequenceFlow(res);
+      container.innerHTML = n8nFlow(res);
     } else if (res.steps) {
-      container.innerHTML = renderSequenceFlow(res.steps);
+      container.innerHTML = n8nFlow(res.steps);
     } else if (res.items && res.items.length) {
       let h = '<table><thead><tr><th>Step</th><th>Type</th><th>Delay</th><th>Content</th></tr></thead><tbody>';
       for (const step of res.items) {
