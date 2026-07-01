@@ -1237,27 +1237,42 @@ function renderSequenceNode(node, depth = 0, branch = '') {
 
 window.loadCampaignSequence = async () => {
   if (!_currentCampaignId) return;
-  const div = document.getElementById('camp-detail-extra');
-  div.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading sequence...</p></div>';
+  let modal = document.getElementById('seq-full-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'seq-full-modal';
+    modal.style.cssText = 'display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:10001;align-items:center;justify-content:center;';
+    modal.innerHTML = `
+      <div style="background:var(--surface);border-radius:var(--radius);padding:24px;width:90vw;max-width:1000px;max-height:90vh;display:flex;flex-direction:column;box-shadow:var(--shadow-lg);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <h3 style="margin:0;font-size:17px;">Campaign Sequence Flow</h3>
+          <button class="btn-outline" onclick="document.getElementById('seq-full-modal').style.display='none'" style="padding:6px 14px;">Close</button>
+        </div>
+        <div id="seq-full-content" style="overflow-y:auto;flex:1;padding-right:8px;"></div>
+      </div>`;
+    document.body.appendChild(modal);
+  }
+  modal.style.display = 'flex';
+  const container = document.getElementById('seq-full-content');
+  container.innerHTML = '<div class="loading"><div class="spinner"></div><p>Loading sequence...</p></div>';
   try {
     const res = await fetch('/api/campaigns/sequence?campaignId=' + _currentCampaignId).then(r => r.json());
-    if (res.error) { div.innerHTML = `<div class="error-banner">${errorSvg}${res.error}</div>`; return; }
-    let h = '<h4 style="margin:0 0 12px; font-size:15px;">Campaign Sequence Flow</h4>';
+    if (res.error) { container.innerHTML = `<div class="error-banner">${errorSvg}${res.error}</div>`; return; }
     if (res.nodeType) {
-      h += '<div style="max-height:500px;overflow-y:auto;padding-right:8px;">' + renderSequenceNode(res) + '</div>';
+      container.innerHTML = renderSequenceNode(res);
     } else if (res.steps) {
-      h += '<div style="max-height:500px;overflow-y:auto;padding-right:8px;">' + renderSequenceNode(res.steps) + '</div>';
+      container.innerHTML = renderSequenceNode(res.steps);
     } else if (res.items && res.items.length) {
-      h += '<table><thead><tr><th>Step</th><th>Type</th><th>Delay</th><th>Content</th></tr></thead><tbody>';
+      let h = '<table><thead><tr><th>Step</th><th>Type</th><th>Delay</th><th>Content</th></tr></thead><tbody>';
       for (const step of res.items) {
         h += `<tr><td>${step.stepOrder || '—'}</td><td>${step.actionType || step.type || '—'}</td><td>${step.delay || '—'}</td><td style="max-width:300px;word-break:break-word;">${(step.content || step.template || '—').substring(0, 200)}</td></tr>`;
       }
       h += '</tbody></table>';
+      container.innerHTML = h;
     } else {
-      h += '<pre style="font-size:12px;max-height:400px;overflow:auto;">' + JSON.stringify(res, null, 2) + '</pre>';
+      container.innerHTML = '<pre style="font-size:12px;max-height:400px;overflow:auto;">' + JSON.stringify(res, null, 2) + '</pre>';
     }
-    div.innerHTML = h;
-  } catch(e) { div.innerHTML = `<div class="error-banner">${e.message}</div>`; }
+  } catch(e) { container.innerHTML = `<div class="error-banner">${e.message}</div>`; }
 };
 
 window.stopLeadInCampaign = async (campaignId, leadMemberId) => {
