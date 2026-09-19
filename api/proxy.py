@@ -197,6 +197,9 @@ def with_rates(s):
     sent = _num(s.get("connectionsSent"))
     started = _num(s.get("totalMessageStarted")) or _num(s.get("messagesSent"))
     in_started = _num(s.get("totalInmailStarted")) or _num(s.get("inmailMessagesSent"))
+    # Same metrics HeyReach's own Performance page shows: leads messaged, not raw message count
+    s["messagedLeads"] = started
+    s["inmailedLeads"] = in_started
     s["acceptRate"] = round(_num(s.get("connectionsAccepted")) / sent, 4) if sent else None
     s["replyRate"] = round(_num(s.get("totalMessageReplies")) / started, 4) if started else None
     s["inmailReplyRate"] = round(_num(s.get("totalInmailReplies")) / in_started, 4) if in_started else None
@@ -236,12 +239,14 @@ def build_stats(params, aid):
     if isinstance(by_day, dict):
         for day in sorted(by_day.keys()):
             row = by_day[day]
-            entry = sum_stats(row if isinstance(row, list) else [row])
+            entry = with_rates(sum_stats(row if isinstance(row, list) else [row]))
             entry["date"] = str(day)[:10]
             daily.append(entry)
 
     totals = overall.get("overallStats")
-    totals = sum_stats([totals]) if isinstance(totals, dict) else sum_stats(daily)
+    derived = ("messagedLeads", "inmailedLeads")
+    totals = sum_stats([totals]) if isinstance(totals, dict) else sum_stats(
+        [{k: v for k, v in d.items() if k not in derived} for d in daily])
 
     # Per-campaign: use the API's own per-campaign totals; only fall back to summing days
     campaigns, warning = [], None
@@ -272,7 +277,7 @@ def build_stats(params, aid):
 
     # Hide campaigns with no activity in the period
     campaigns = [c for c in campaigns if any(_num(v) for k, v in c.items() if k != "campaignId")]
-    campaigns.sort(key=lambda c: _num(c.get("connectionsSent")) + _num(c.get("messagesSent")), reverse=True)
+    campaigns.sort(key=lambda c: _num(c.get("connectionsSent")) + _num(c.get("messagedLeads")), reverse=True)
     return {
         "range": {"from": date_from, "to": date_to},
         "accountId": aid,

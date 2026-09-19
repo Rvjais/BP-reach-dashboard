@@ -433,9 +433,9 @@ async function remoteTable(id, url, params, cfg) {
 const CHARTS = [];
 const SERIES = [
   { key: 'connectionsSent', label: 'Connections sent', color: 'var(--s1)' },
-  { key: 'connectionsAccepted', label: 'Accepted', color: 'var(--s2)' },
-  { key: 'messagesSent', label: 'Messages sent', color: 'var(--s3)' },
-  { key: 'totalMessageReplies', label: 'Replies', color: 'var(--s4)' },
+  { key: 'connectionsAccepted', label: 'Accepted connections', color: 'var(--s2)' },
+  { key: 'messagedLeads', label: 'Messaged leads', color: 'var(--s3)' },
+  { key: 'totalMessageReplies', label: 'Replied leads', color: 'var(--s4)' },
 ];
 function niceScale(v) { if (v <= 5) return [5, 5]; const p = Math.pow(10, Math.floor(Math.log10(v))), f = v / p, m = f <= 1 ? 1 : f <= 2 ? 2 : f <= 4 ? 4 : f <= 5 ? 5 : 10; return [m * p, m === 5 || m === 10 || m === 1 ? 5 : 4]; }
 function activityCard(daily) {
@@ -481,9 +481,9 @@ const tile = (label, value, note) => `<div class="card tile"><div class="tile-la
 function perfTiles(t) {
   return `<div class="tiles">
     ${tile('Connections sent', n(t.connectionsSent))}
-    ${tile('Connections accepted', n(t.connectionsAccepted), `${pct(t.acceptRate)} acceptance rate`)}
-    ${tile('Messages sent', n(t.messagesSent))}
-    ${tile('Replies', n(t.totalMessageReplies), `${pct(t.replyRate)} reply rate`)}</div>`;
+    ${tile('Accepted connections', n(t.connectionsAccepted), `${pct(t.acceptRate)} acceptance rate`)}
+    ${tile('Messaged leads', n(t.messagedLeads))}
+    ${tile('Replied leads', n(t.totalMessageReplies), `${pct(t.replyRate)} reply rate`)}</div>`;
 }
 function finish(el, html, alive) { if (!alive()) return; el.innerHTML = html; Object.keys(TABLES).forEach(id => { if ($(id) && !$(id).children.length) mountTable(id); }); CHARTS.forEach(f => f()); }
 
@@ -514,26 +514,34 @@ VIEWS.overview = async (el, alive) => {
 
 VIEWS.analytics = async (el, alive) => {
   const st = await getStats(), t = st.totals;
-  const extra = [['Profile views', t.profileViews], ['Follows', t.follows], ['Post likes', t.postLikes], ['InMails sent', t.inmailMessagesSent], ['InMail replies', t.totalInmailReplies]].filter(x => x[1]);
+  // Tagged / interested field names aren't documented, so find them by name
+  const keyLike = (re, not) => Object.keys(t).find(k => re.test(k) && !(not && not.test(k)) && typeof t[k] === 'number');
+  const kInterested = keyLike(/interested/i), kTagged = keyLike(/tag/i, /interested/i);
+  const shown = new Set(['connectionsSent', 'connectionsAccepted', 'messagedLeads', 'inmailedLeads', 'totalMessageStarted', 'totalInmailStarted', 'totalMessageReplies', 'totalInmailReplies', kInterested, kTagged]);
+  const second = [tile('InMailed leads', n(t.inmailedLeads)), tile('Replied to InMails', n(t.totalInmailReplies), `${pct(t.inmailReplyRate)} reply rate`)];
+  if (kTagged) second.push(tile('Tagged leads', n(t[kTagged])));
+  if (kInterested) second.push(tile('Interested leads', n(t[kInterested]), kTagged && t[kTagged] ? `${pct(t[kInterested] / t[kTagged])} of tagged` : ''));
+  const extra = Object.entries(t).filter(([k, v]) => !shown.has(k) && typeof v === 'number' && v && !/rate$/i.test(k)).map(([k, v]) => [humanize(k.replace(/([a-z])([A-Z])/g, '$1 $2')), v]);
   const csv = () => {
-    const rows = [['Campaign', 'Connections sent', 'Accepted', 'Accept rate', 'Messages sent', 'Replies', 'Reply rate'], ...st.campaigns.map(c => [c.campaignName || c.campaignId, c.connectionsSent || 0, c.connectionsAccepted || 0, pct(c.acceptRate), c.messagesSent || 0, c.totalMessageReplies || 0, pct(c.replyRate)])];
+    const rows = [['Campaign', 'Connections sent', 'Accepted connections', 'Accept rate', 'Messaged leads', 'Replied leads', 'Reply rate'], ...st.campaigns.map(c => [c.campaignName || c.campaignId, c.connectionsSent || 0, c.connectionsAccepted || 0, pct(c.acceptRate), c.messagedLeads || 0, c.totalMessageReplies || 0, pct(c.replyRate)])];
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n')], { type: 'text/csv' }));
     a.download = `bp-reach-${st.range.from}_${st.range.to}.csv`; a.click(); URL.revokeObjectURL(a.href);
   };
   const sum = (rows, k) => rows.reduce((a, c) => a + (c[k] || 0), 0);
   let html = `<div class="sub" style="margin-bottom:14px">${fmtDay(st.range.from)} – ${fmtDay(st.range.to)} · rates are calculated from the totals of this period</div>` + (st.warning ? `<div class="alert warn">${esc(st.warning)}</div>` : '') + perfTiles(t);
-  if (extra.length) html += `<div class="tiles" style="margin-top:14px">${extra.map(x => tile(x[0], n(x[1]))).join('')}</div>`;
-  html += `<div class="grid-2">${activityCard(st.daily)}<div class="card"><div class="card-h"><h3>Outreach funnel</h3></div><div class="card-b">${hbars([{ label: 'Connections sent', value: t.connectionsSent || 0 }, { label: 'Accepted', value: t.connectionsAccepted || 0 }, { label: 'Messages sent', value: t.messagesSent || 0 }, { label: 'Replies', value: t.totalMessageReplies || 0 }], true)}<div class="cell-sub" style="margin-top:10px">Percentages are relative to connections sent.</div></div></div></div>
+  html += `<div class="tiles" style="margin-top:14px">${second.join('')}</div>`;
+  if (extra.length) html += `<div class="section-title"><h2>Other activity</h2></div><div class="tiles">${extra.map(x => tile(x[0], n(x[1]))).join('')}</div>`;
+  html += `<div class="grid-2">${activityCard(st.daily)}<div class="card"><div class="card-h"><h3>Outreach funnel</h3></div><div class="card-b">${hbars([{ label: 'Connections sent', value: t.connectionsSent || 0 }, { label: 'Accepted', value: t.connectionsAccepted || 0 }, { label: 'Messaged leads', value: t.messagedLeads || 0 }, { label: 'Replied leads', value: t.totalMessageReplies || 0 }], true)}<div class="cell-sub" style="margin-top:10px">Percentages are relative to connections sent.</div></div></div></div>
     <div class="section-title"><h2>By campaign</h2><span>${n(st.campaigns.length)} with activity</span></div>` +
     dataTable({ id: 'tbl-stats', rows: st.campaigns, placeholder: 'Search campaigns…', empty: 'No campaign activity in this period', sort: 1, dir: -1,
       tools: `<button class="btn sm" onclick="${act(csv)}">Export CSV</button>`,
       cols: [
         { label: 'Campaign', get: c => c.campaignName || 'Campaign ' + c.campaignId, html: c => `<span class="cell-main">${esc(c.campaignName || 'Campaign ' + c.campaignId)}</span>${c.isCampaignDeleted ? ' <span class="chip">Deleted</span>' : ''}` },
         { label: 'Sent', num: 1, get: c => c.connectionsSent || 0, html: c => n(c.connectionsSent) }, { label: 'Accepted', num: 1, get: c => c.connectionsAccepted || 0, html: c => n(c.connectionsAccepted) },
-        { label: 'Accept rate', num: 1, get: c => c.acceptRate, html: c => pct(c.acceptRate) }, { label: 'Messages', num: 1, get: c => c.messagesSent || 0, html: c => n(c.messagesSent) },
-        { label: 'Replies', num: 1, get: c => c.totalMessageReplies || 0, html: c => n(c.totalMessageReplies) }, { label: 'Reply rate', num: 1, get: c => c.replyRate, html: c => pct(c.replyRate) },
+        { label: 'Accept rate', num: 1, get: c => c.acceptRate, html: c => pct(c.acceptRate) }, { label: 'Messaged', num: 1, get: c => c.messagedLeads || 0, html: c => n(c.messagedLeads) },
+        { label: 'Replied', num: 1, get: c => c.totalMessageReplies || 0, html: c => n(c.totalMessageReplies) }, { label: 'Reply rate', num: 1, get: c => c.replyRate, html: c => pct(c.replyRate) },
       ],
-      totals: rows => { const cs = sum(rows, 'connectionsSent'), ca = sum(rows, 'connectionsAccepted'), ms = sum(rows, 'messagesSent'), rp = sum(rows, 'totalMessageReplies'), started = sum(rows, 'totalMessageStarted') || ms; return ['Total', n(cs), n(ca), pct(cs ? ca / cs : null), n(ms), n(rp), pct(started ? rp / started : null)]; } });
+      totals: rows => { const cs = sum(rows, 'connectionsSent'), ca = sum(rows, 'connectionsAccepted'), ms = sum(rows, 'messagedLeads'), rp = sum(rows, 'totalMessageReplies'), started = ms; return ['Total', n(cs), n(ca), pct(cs ? ca / cs : null), n(ms), n(rp), pct(started ? rp / started : null)]; } });
   finish(el, html, alive);
 };
 
